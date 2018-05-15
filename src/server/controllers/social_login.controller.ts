@@ -118,7 +118,7 @@ function is_user_verified(provider, data) {
     sum += joined_github_months * 0.83
     if(data.two_factor_authentication) sum += 5
     sum += Math.max(((data.public_repos + data.total_private_repos) * 0.05), 1.0)
-        sum += data.followers * 0.02
+    sum += data.followers * 0.02
 
   } else if(provider === 'facebook') {
     if(data.is_verified) { sum += 5 }
