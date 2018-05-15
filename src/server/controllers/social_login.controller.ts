@@ -254,10 +254,8 @@ async function phone_confirm(req, res, next) {
 async function send_sms(phone_number, random_code) {
   try {
     let response
-    if(process.env.REG_TESTNET === 'false') {
-      response = await request.post('https://rest.nexmo.com/sms/json')
-          .query({ to: phone_number, from: 'UTOPIAN.IO', text: `Your Code: ${random_code}` , api_key: process.env.NEXMO_API_KEY, api_secret: process.env.NEXMO_API_SECRET })
-    }
+    response = await request.post('https://rest.nexmo.com/sms/json')
+        .query({ to: phone_number, from: 'UTOPIAN.IO', text: `Your Code: ${random_code}` , api_key: process.env.NEXMO_API_KEY, api_secret: process.env.NEXMO_API_SECRET })
     return response
   } catch (error) {
     console.error(error)
