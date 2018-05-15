@@ -6,6 +6,7 @@ import steemAPI from '../steemAPI'
 import * as steem from 'steem'
 import * as dsteem from 'dsteem'
 import { client } from '../../config/express'
+import CryptoJS from 'crypto-js';
 
 import pendingUser from '../models/pending_user.model'
 import realUser from '../models/user.model'
@@ -142,7 +143,7 @@ async function email_request(req, res, next) {
     let token:any = new emailToken({ user_id: found_user._id, token: crypto.randomBytes(16).toString('hex') })
     await token.save()
 
-    found_user.email = req.body.email
+    found_user.email = CryptoJS.AES.encrypt(req.body.email, process.env.DECRYPT_KEY);
     await found_user.save()
     let confirmation_link = process.env.NODE_ENV === 'production' ? `https://signup.utopian.io` : `http://localhost:${process.env.REGISTRATION_FRONTEND_PORT}`
     let transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: process.env.GOOGLE_MAIL_ACCOUNT, pass: process.env.GOOGLE_MAIL_PASSWORD } })

@@ -76,10 +76,4 @@ async function create(req, res, next) {
     }
 }
 
-function list(req, res) {
-    return res.json({
-        hello: "hello"
-    });
-}
-
-export default {get, create, list};
+export default {get, create};
