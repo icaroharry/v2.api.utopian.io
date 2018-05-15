@@ -45,6 +45,7 @@ const UserSchema = new mongoose.Schema({
     ip: String,
   }],
   last_passwords: [], // last 4 digits of the last passwords for recovery reasons
+  test_net: Boolean,
 });
 
 UserSchema.index({

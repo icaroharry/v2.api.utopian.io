@@ -422,7 +422,7 @@ export async function create_new_user(pending_user) {
 
     const encryptedEmail = CryptoJS.AES.encrypt(email, process.env.DECRYPT_KEY);
 
-    let user:any = new realUser({ account: steem_account, email: encryptedEmail})
+    let user:any = new realUser({ account: steem_account, email: encryptedEmail, test_net: process.env.REG_TESTNET === 'true' || false})
 
     if(!user.social_data) user.social_data = []
     user.social_data.push({ provider: social_provider, social_name, social_id, social_verified })
