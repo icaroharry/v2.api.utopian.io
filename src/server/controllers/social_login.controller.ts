@@ -21,35 +21,35 @@ const USER_THRESHOLD_VERIFIED = 5
 
 const request_github_token = (body) => {
   return request.post('https://github.com/login/oauth/access_token')
-    .set('Content-Type', 'application/json')
-    .send({
-    client_id: process.env.UTOPIAN_SOCIAL_GITHUB_CLIENT_ID, // CHANGE THIS
-    client_secret: process.env.UTOPIAN_SOCIAL_GITHUB_SECRET, // CHANGE THIS
-    code: body.code, redirect_uri: body.redirectUri, state: body.state,
-    scope: ['read:user','user:email','public_repo','read:org'], grant_type: 'authorization_code'
-  })
+      .set('Content-Type', 'application/json')
+      .send({
+        client_id: process.env.UTOPIAN_SOCIAL_GITHUB_CLIENT_ID, // CHANGE THIS
+        client_secret: process.env.UTOPIAN_SOCIAL_GITHUB_SECRET, // CHANGE THIS
+        code: body.code, redirect_uri: body.redirectUri, state: body.state,
+        scope: ['read:user','user:email','public_repo','read:org'], grant_type: 'authorization_code'
+      })
 }
 
 const request_facebook_token = (body) => {
   return request
-  .post('https://graph.facebook.com/oauth/access_token')
-  .set('Content-Type', 'application/json')
-  .send({
-    client_id: process.env.UTOPIAN_SOCIAL_FACEBOOK_CLIENT_ID,
-    client_secret: process.env.UTOPIAN_SOCIAL_FACEBOOK_SECRET,
-    code: body.code, redirect_uri: body.redirectUri
-  })
+      .post('https://graph.facebook.com/oauth/access_token')
+      .set('Content-Type', 'application/json')
+      .send({
+        client_id: process.env.UTOPIAN_SOCIAL_FACEBOOK_CLIENT_ID,
+        client_secret: process.env.UTOPIAN_SOCIAL_FACEBOOK_SECRET,
+        code: body.code, redirect_uri: body.redirectUri
+      })
 }
 
 const request_linkedin_token = (body) => {
   return request
-  .post('https://www.linkedin.com/oauth/v2/accessToken')
-  .set('Content-Type', 'application/x-www-form-urlencoded')
-  .send({
-    client_id: process.env.UTOPIAN_SOCIAL_LINKEDIN_CLIENT_ID,
-    client_secret: process.env.UTOPIAN_SOCIAL_LINKEDIN_SECRET,
-    code: body.code, redirect_uri: body.redirectUri, grant_type: 'authorization_code'
-  })
+      .post('https://www.linkedin.com/oauth/v2/accessToken')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send({
+        client_id: process.env.UTOPIAN_SOCIAL_LINKEDIN_CLIENT_ID,
+        client_secret: process.env.UTOPIAN_SOCIAL_LINKEDIN_SECRET,
+        code: body.code, redirect_uri: body.redirectUri, grant_type: 'authorization_code'
+      })
 }
 
 async function authenticate(req, res, next) {
@@ -66,32 +66,32 @@ async function authenticate(req, res, next) {
       let tokenRes:any = await request_token(req.body)
       let access_token = tokenRes.body.access_token
       if(access_token) {
-      // LinkedIn = 'oauth2_access_token':
-      request.get(request_api_user).query({access_token}).end(async (err, result) => {
-        let data = provider === 'github' ? result.body : JSON.parse(result.text)
-        let user:any = { id: data.id, email: data.email }
-        user.name = provider === 'github' ? data.login : data.name
-        user.verified = is_user_verified(provider, data)
-        if(provider === 'github' && !user.email) {
+        // LinkedIn = 'oauth2_access_token':
+        request.get(request_api_user).query({access_token}).end(async (err, result) => {
+          let data = provider === 'github' ? result.body : JSON.parse(result.text)
+          let user:any = { id: data.id, email: data.email }
+          user.name = provider === 'github' ? data.login : data.name
+          user.verified = is_user_verified(provider, data)
+          if(provider === 'github' && !user.email) {
             let resp_email = await request.get(EMAIL_API_GITHUB).query({access_token})
             user.email = await get_primary_email(resp_email.body)
-        }
-        
-        let found_user = await pendingUser.get(user.id)
-        if(found_user) {
-          found_user.social_verified = user.verified
-          found_user.social_email = user.email
-          found_user.social_name = user.name
-          await found_user.save()
-          res.status(200).json({user: found_user, access_token})
-        } else {
-          let salt = generate_rnd_string(4)
-          user = await pendingUser.create({ social_name: user.name, social_id: user.id, social_verified: user.verified, social_email: user.email, social_provider: provider, salt })
-          res.status(200).json({user, access_token})
-        }
-      })
+          }
+
+          let found_user = await pendingUser.get(user.id)
+          if(found_user) {
+            found_user.social_verified = user.verified
+            found_user.social_email = user.email
+            found_user.social_name = user.name
+            await found_user.save()
+            res.status(200).json({user: found_user, access_token})
+          } else {
+            let salt = generate_rnd_string(4)
+            user = await pendingUser.create({ social_name: user.name, social_id: user.id, social_verified: user.verified, social_email: user.email, social_provider: provider, salt })
+            res.status(200).json({user, access_token})
+          }
+        })
+      } else { res.status(500) }
     } else { res.status(500) }
-  } else { res.status(500) }
   } catch (e) { next(e) }
 }
 
@@ -123,7 +123,7 @@ function is_user_verified(provider, data) {
 
   } else if(provider === 'linkedin') {
   } else { return false }
-  
+
   return sum >= USER_THRESHOLD_VERIFIED
 }
 
@@ -138,7 +138,7 @@ async function email_request(req, res, next) {
     let email_in_use = false
     if(duplicate_user) email_in_use = duplicate_user.social_id !== found_user.social_id
     if(await realUser.findOne({ email: req.body.email }) || email_in_use || found_user.email_verified ) return res.status(500).send({ message: 'The email adress is already getting used' })
-    
+
     let token:any = new emailToken({ user_id: found_user._id, token: crypto.randomBytes(16).toString('hex') })
     await token.save()
 
@@ -159,7 +159,7 @@ async function email_confirm(req, res, next) {
   try {
     let token:any = await emailToken.findOne({ token: req.body.token })
     if(!token) return res.status(400).send({ type: 'not-verified', message: 'We were unable to find a valid token. Your token may have expired.' })
-  
+
     let found_user:any = await pendingUser.findOne({ _id: token.user_id })
     if(!found_user) return res.status(400).send({ message: 'We were unable to find a user for this token.' })
     if(found_user.email_verified) return res.status(400).send({ type: 'already-verified', message: 'This user has already been verified.' })
@@ -192,10 +192,10 @@ async function phone_request(req, res, next) {
     if(found_user.sms_verif_tries > 3) return res.status(500).send({message: 'Your requests for sms-verification went over the limit - please contact us on discord!'})
 
     let random_code = crypto.randomBytes(2).toString('hex')
-      
+
     let response = await send_sms(phone_number, random_code)
     let valid_number = process.env.REG_TESTNET === 'true' ? process.env.REG_TESTNET === 'true' : response.body.status !== '0'
-    
+
     if(valid_number) {
       let phone_code:any = new phoneCode({ user_id: found_user._id, code: random_code, phone_number })
       await phone_code.save()
@@ -225,8 +225,8 @@ async function phone_confirm(req, res, next) {
   try {
     let code:any = process.env.REG_TESTNET === 'false' ?  await phoneCode.findOne({ user_id: req.body.user_id,  code: req.body.code }) : { phone_number: '49123456789', user_id: req.body.user_id }
     if(!code) return res.status(400).send({ type: 'not-verified', message: 'Invalid SMS-Code' })
-    
-  
+
+
     let found_user:any = await pendingUser.findOne({ _id: code.user_id })
     if(!found_user) return res.status(400).send({ message: 'We were unable to find a user for this code.' })
     if(found_user.sms_verified) return res.status(400).send({ type: 'already-verified', message: 'This user has already been verified.' })
@@ -247,7 +247,7 @@ async function send_sms(phone_number, random_code) {
     let response
     if(process.env.REG_TESTNET === 'false') {
       response = await request.post('https://rest.nexmo.com/sms/json')
-      .query({ to: phone_number, from: 'UTOPIAN.IO', text: `Your Code: ${random_code}` , api_key: process.env.NEXMO_API_KEY, api_secret: process.env.NEXMO_API_SECRET })
+          .query({ to: phone_number, from: 'UTOPIAN.IO', text: `Your Code: ${random_code}` , api_key: process.env.NEXMO_API_KEY, api_secret: process.env.NEXMO_API_SECRET })
     }
     return response
   } catch (error) {
@@ -302,18 +302,18 @@ async function account_accept(req, res, next) {
 
     let found_user:any = await pendingUser.findOne({ _id: user_id });
     if(!found_user)
-		  return res.status(500).send({message: 'User not found'});
-	
+      return res.status(500).send({message: 'User not found'});
+
     if(!found_user[type])
     {
       found_user[type] = [];
     }
-    
+
     found_user[type].push({
-	  ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-	  date: new Date(),
-	});
-	
+      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      date: new Date(),
+    });
+
     found_user.markModified(type);
     await found_user.save();
     res.status(200).send({ message: "Success.", found_user  });
@@ -331,19 +331,34 @@ async function account_create(req, res, next) {
     let found_user:any = await pendingUser.findOne({ _id: user_id })
     if(!found_user) return res.status(500).send({message: 'User not found'})
 
-    let constants = await client.database.getConfig()
-    let chainProps = await client.database.getChainProperties()
-    const props = await client.database.getDynamicGlobalProperties()
+    /*
+     let constants = await client.database.getConfig()
+     let chainProps = await client.database.getChainProperties()
+     const props = await client.database.getDynamicGlobalProperties()
+     */
 
-    const creation_fee = dsteem.Asset.from(chainProps.account_creation_fee)
-    const share_price = dsteem.Price.from({ base: props.total_vesting_shares, quote: props.total_vesting_fund_steem })
+    /*
+     console.log('props', chainProps)
 
-    const ratio:any = constants['STEEMIT_CREATE_ACCOUNT_DELEGATION_RATIO']
-    const modifier:any = constants['STEEMIT_CREATE_ACCOUNT_WITH_STEEM_MODIFIER']
-    
-    const target_delegation = share_price.convert(creation_fee.multiply(modifier * ratio))
-    const delegation = target_delegation.subtract(share_price.convert(creation_fee.multiply(ratio - 1)))
+     const creation_fee = dsteem.Asset.from(chainProps.account_creation_fee)
 
+     console.log('fee', creation_fee)
+
+     const share_price = dsteem.Price.from({ base: props.total_vesting_shares, quote: props.total_vesting_fund_steem })
+
+     console.log('price', share_price)
+
+     const ratio:any = constants['STEEMIT_CREATE_ACCOUNT_DELEGATION_RATIO']
+     const modifier:any = constants['STEEMIT_CREATE_ACCOUNT_WITH_STEEM_MODIFIER']
+
+     const target_delegation = share_price.convert(creation_fee.multiply(modifier * ratio))
+
+     console.log('target delegation', delegation)
+
+     const delegation = target_delegation.subtract(share_price.convert(creation_fee.multiply(ratio - 1)))
+
+     console.log('delegation', delegation)
+     */
     // CHANGE PREFIX FOR TESTNET
     if(process.env.REG_TESTNET !== 'false' ) {
       owner_auth.key_auths[0][0] = owner_auth.key_auths[0][0].replace('STM','STX')
@@ -354,16 +369,28 @@ async function account_create(req, res, next) {
 
     let CREATOR = process.env.REG_TESTNET !== 'false' ? process.env.ACCOUNT_CREATOR_TEST : process.env.ACCOUNT_CREATOR
 
-    let op:any = ['account_create_with_delegation', {
-      fee: creation_fee, delegation, creator: CREATOR,
-      new_account_name: account_name, owner: owner_auth, active: active_auth,
-      posting: posting_auth, memo_key: memo_auth.key_auths[0][0], json_metadata: '', extensions:[]
-    }]
-    
+    /*
+     let op:any = ['account_create_with_delegation', {
+     fee: creation_fee, delegation: 15, creator: CREATOR,
+     new_account_name: account_name, owner: owner_auth, active: active_auth,
+     posting: posting_auth, memo_key: memo_auth.key_auths[0][0], json_metadata: '', extensions:[]
+     }]
+     */
     let ACTIVE_KEY = process.env.REG_TESTNET !== 'false' ? process.env.ACCOUNT_CREATOR_PASSWORD_TEST : process.env.ACCOUNT_CREATOR_ACTIVE_KEY
     const creator_key:any = process.env.REG_TESTNET !== 'false' ? dsteem.PrivateKey.fromLogin(String(CREATOR), String(ACTIVE_KEY), 'active') : dsteem.PrivateKey.from(String(ACTIVE_KEY))
 
-    await client.broadcast.sendOperations([op], creator_key)
+    console.log(creator_key)
+
+    //await client.broadcast.sendOperations([op], creator_key)
+
+    await client.broadcast.createAccount({
+      creator: CREATOR, username: account_name, auths: {
+        owner: owner_auth,
+        active: active_auth,
+        posting: posting_auth,
+        memoKey: memo_auth.key_auths[0][0],
+      }
+    }, creator_key);
 
     found_user.last_digits_password = last_digits_password
     found_user.steem_account = account_name
@@ -372,14 +399,14 @@ async function account_create(req, res, next) {
     await found_user.save()
 
     let new_user = await create_new_user(found_user)
-    if(new_user) { res.status(200).send({ message: "Account has been created.", user: found_user}) } 
+    if(new_user) { res.status(200).send({ message: "Account has been created.", user: found_user}) }
     else { res.status(500).json({ message: `We couldn't create your account. Please contact us on discord!`}) }
   } catch (error) {
-    console.log(error.message)
+    console.log('error creation', error.message)
     res.status(500).json({ message: filter_error_message(error.message)})
   }
 }
-  
+
 export async function create_new_user(pending_user) {
   try {
     let { steem_account, email, phone_number, social_provider, social_name, social_id, social_verified } = pending_user
@@ -391,7 +418,7 @@ export async function create_new_user(pending_user) {
 
     if(!user.last_passwords) user.last_passwords = []
     user.last_passwords.push(pending_user.last_digits_password)
-  
+
     user.details.recoveryAccount = process.env.ACCOUNT_CREATOR
     user.privacy = pending_user.privacy
     user.tos = pending_user.tos

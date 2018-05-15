@@ -18,13 +18,10 @@ const envVarsSchema = Joi.object({
         otherwise: Joi.boolean().default(false)
       }),
   STEEM_NODE: Joi.string().default('https://api.steemit.com'),
-  STEEMCONNECT_HOST: Joi.string().default('https://v2.steemconnect.com'),
   MONGO_HOST: Joi.string().required()
       .description('Mongo DB host url'),
-  UTOPIAN_GITHUB_SECRET: Joi.string().required(),
-  UTOPIAN_GITHUB_CLIENT_ID: Joi.string().required(),
-  UTOPIAN_GITHUB_REDIRECT_URL: Joi.string().required(),
-  UTOPIAN_STEEMCONNECT_SECRET: Joi.string().required(),
+  UTOPIAN_SOCIAL_GITHUB_SECRET: Joi.string().required(),
+  UTOPIAN_SOCIAL_GITHUB_CLIENT_ID: Joi.string().required(),
 }).unknown()
     .required();
 
