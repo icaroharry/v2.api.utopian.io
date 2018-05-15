@@ -30,7 +30,6 @@ const UserSchema = new mongoose.Schema({
   email_verified: Boolean,
   sms_verified: Boolean,
   email: String,
-  phone_number: String,
   social_data: [{
     provider: String,
     social_name: String,

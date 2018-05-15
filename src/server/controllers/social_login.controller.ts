@@ -6,7 +6,7 @@ import steemAPI from '../steemAPI'
 import * as steem from 'steem'
 import * as dsteem from 'dsteem'
 import { client } from '../../config/express'
-import CryptoJS from 'crypto-js';
+import * as CryptoJS from 'crypto-js';
 
 import pendingUser from '../models/pending_user.model'
 import realUser from '../models/user.model'
@@ -27,7 +27,7 @@ const request_github_token = (body) => {
         client_id: process.env.UTOPIAN_SOCIAL_GITHUB_CLIENT_ID, // CHANGE THIS
         client_secret: process.env.UTOPIAN_SOCIAL_GITHUB_SECRET, // CHANGE THIS
         code: body.code, redirect_uri: body.redirectUri, state: body.state,
-        scope: ['read:user','user:email','public_repo','read:org'], grant_type: 'authorization_code'
+        scope: ['read:user','user:email'], grant_type: 'authorization_code'
       })
 }
 
@@ -79,15 +79,17 @@ async function authenticate(req, res, next) {
           }
 
           let found_user = await pendingUser.get(user.id)
+          const encryptedSocialEmail = CryptoJS.AES.encrypt(user.email, process.env.DECRYPT_KEY);
+
           if(found_user) {
             found_user.social_verified = user.verified
-            found_user.social_email = user.email
+            found_user.social_email = encryptedSocialEmail;
             found_user.social_name = user.name
             await found_user.save()
             res.status(200).json({user: found_user, access_token})
           } else {
             let salt = generate_rnd_string(4)
-            user = await pendingUser.create({ social_name: user.name, social_id: user.id, social_verified: user.verified, social_email: user.email, social_provider: provider, salt })
+            user = await pendingUser.create({ social_name: user.name, social_id: user.id, social_verified: user.verified, social_email: encryptedSocialEmail, social_provider: provider, salt })
             res.status(200).json({user, access_token})
           }
         })
@@ -144,7 +146,9 @@ async function email_request(req, res, next) {
     await token.save()
 
     found_user.email = CryptoJS.AES.encrypt(req.body.email, process.env.DECRYPT_KEY);
+
     await found_user.save()
+
     let confirmation_link = process.env.NODE_ENV === 'production' ? `https://signup.utopian.io` : `http://localhost:${process.env.REGISTRATION_FRONTEND_PORT}`
     let transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: process.env.GOOGLE_MAIL_ACCOUNT, pass: process.env.GOOGLE_MAIL_PASSWORD } })
     let mailOptions = { from: process.env.GOOGLE_MAIL_ACCOUNT, to: req.body.email, subject: 'Utopian Email Confirmation', text: 'Hey there,\n\n' + `Please confirm your email for Utopian.io by clicking on this link: ${confirmation_link}/email/confirm/${token.token}` + '.\n' }
@@ -197,8 +201,12 @@ async function phone_request(req, res, next) {
     let response = await send_sms(phone_number, random_code)
     let valid_number = process.env.REG_TESTNET === 'true' ? process.env.REG_TESTNET === 'true' : response.body.status !== '0'
 
+    console.log('sms res', response)
+
     if(valid_number) {
-      let phone_code:any = new phoneCode({ user_id: found_user._id, code: random_code, phone_number })
+      const encryptedPhone = CryptoJS.AES.encrypt(phone_number, process.env.DECRYPT_KEY);
+
+      let phone_code:any = new phoneCode({ user_id: found_user._id, code: random_code, phone_number: encryptedPhone })
       await phone_code.save()
       found_user.sms_verif_tries += 1
       await found_user.save()
@@ -410,9 +418,11 @@ async function account_create(req, res, next) {
 
 export async function create_new_user(pending_user) {
   try {
-    let { steem_account, email, phone_number, social_provider, social_name, social_id, social_verified } = pending_user
+    let { steem_account, email, phone_number, social_provider, social_name, social_id, social_verified } = pending_user;
 
-    let user:any = new realUser({ account: steem_account, email: email, phone_number: phone_number ? phone_number : '' })
+    const encryptedEmail = CryptoJS.AES.encrypt(email, process.env.DECRYPT_KEY);
+
+    let user:any = new realUser({ account: steem_account, email: encryptedEmail})
 
     if(!user.social_data) user.social_data = []
     user.social_data.push({ provider: social_provider, social_name, social_id, social_verified })
