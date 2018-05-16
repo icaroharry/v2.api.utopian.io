@@ -16,7 +16,7 @@ Create a database named utopian-io
 `npm install`
 
 ### Create .env file
-NODE_ENV=production
+`NODE_ENV=production
 SERVER_SSL_CERT=[path to certificate]
 SERVER_SSL_KEY=[path to key]
 
@@ -50,7 +50,7 @@ ACCOUNT_CREATOR_ACTIVE_KEY_TEST=[active key used for creating accounts on the te
 DECRYPT_KEY=[key for decrypting stored data]
 
 REGISTRATION_FRONTEND_PORT=9090
-REG_TESTNET=false
+REG_TESTNET=false`
 
 
 ### Generate and Export SSL Certificates
