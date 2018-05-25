@@ -279,7 +279,6 @@ async function invite_code_create(req, res, next) {
   try {
     if(req.body.admin_password !== process.env.ADMIN_PASSWORD) return res.status(400).send({ type: 'invalid-password', message: 'This action requires admin privileges.' })
     let code:any = await inviteCode.create({ code: req.body.code })
-    console.log(code)
 
     res.status(200).send({ message: 'The invitation code was created.' })
   } catch (error) {
@@ -446,6 +445,7 @@ async function account_create(req, res, next) {
 
     let found_user:any = await pendingUser.findOne({ _id: user_id })
     if(!found_user) return res.status(500).send({message: 'User not found'})
+    if(found_user.has_created_account) return res.status(500).send({message: 'This user has already created an account!.'})
 
     /*
      let constants = await client.database.getConfig()
