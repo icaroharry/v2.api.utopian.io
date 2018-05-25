@@ -10,6 +10,7 @@ import * as CryptoJS from 'crypto-js';
 
 import pendingUser from '../models/pending_user.model'
 import realUser from '../models/user.model'
+import inviteCode from '../models/invite_code.model'
 import emailToken from '../models/email_verif_token.model'
 import phoneCode from '../models/phone_verif_code.model'
 
@@ -83,7 +84,7 @@ async function authenticate(req, res, next) {
 
           if(found_user) {
             found_user.social_verified = user.verified
-            found_user.social_email = encryptedSocialEmail;
+            found_user.social_email = encryptedSocialEmail
             found_user.social_name = user.name
             await found_user.save()
             res.status(200).json({user: found_user, access_token})
@@ -130,6 +131,75 @@ function is_user_verified(provider, data) {
   return sum >= USER_THRESHOLD_VERIFIED
 }
 
+// Manual Approval
+async function approval_request(req, res, next) {
+  try {
+    let found_user:any = await pendingUser.findOne({ _id: req.body.user_id })
+    if(!found_user) return res.status(500).send({message: 'User not found'})
+
+    found_user.pending_approval = true
+
+    await found_user.save()
+
+    res.status(200).send('The manual approval request was done successfully')
+  } catch (error) {
+    console.error(error.message)
+    res.status(500).json({ message: filter_error_message(error.message)})
+  }
+}
+
+
+async function approval_accept(req, res, next) {  
+  try {
+    if(req.body.admin_password !== process.env.ADMIN_PASSWORD) return res.status(400).send({ type: 'invalid-password', message: 'This action requires admin privileges.' })
+
+    let found_user:any = await pendingUser.findOne({ _id: req.body.user_id })
+    if(!found_user) return res.status(500).send({message: 'User not found'})
+
+    let token:any = new emailToken({ user_id: found_user._id, token: crypto.randomBytes(16).toString('hex'), manual_approval_token: true })
+    await token.save()
+
+    found_user.approved = true
+    found_user.pending_approval = false
+    await found_user.save()
+
+    const decrypted_email = CryptoJS.AES.decrypt(found_user.email.toString(), process.env.DECRYPT_KEY).toString(CryptoJS.enc.Utf8)
+    let confirmation_link = process.env.NODE_ENV === 'production' ? `https://signup.utopian.io` : `http://localhost:${process.env.REGISTRATION_FRONTEND_PORT}`
+    console.log(`${confirmation_link}/email/confirm/${token.token}`)
+    let transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: process.env.GOOGLE_MAIL_ACCOUNT, pass: process.env.GOOGLE_MAIL_PASSWORD } })
+    let mailOptions = {
+      from: process.env.GOOGLE_MAIL_ACCOUNT,
+      to: decrypted_email,
+      subject: 'Utopian Account Creation',
+      text: 'Hey there,\n\n' + `We're pleased to announce that you were approved to create an Utopian account. Follow the next steps on this link: ${confirmation_link}/approval/confirm/${token.token}` + '.\n'
+    }
+    await transporter.sendMail(mailOptions)
+    res.status(200).send('The confirmation link email has been sent to ' + decrypted_email + '.')
+  } catch (error) {
+    console.error(error.message)
+    res.status(500).json({ message: filter_error_message(error.message)})
+  }
+}
+
+async function approval_confirm(req, res, next) {
+  try {
+    let token:any = await emailToken.findOne({ token: req.body.token, manual_approval_token: true })
+    if(!token) return res.status(400).send({ type: 'not-verified', message: 'We were unable to find a valid token. Your token may have expired.' })
+
+    let found_user:any = await pendingUser.findOne({ _id: token.user_id })
+    if(!found_user) return res.status(400).send({ message: 'We were unable to find a user for this token.' })
+    if(found_user.approval_verified) return res.status(400).send({ type: 'already-approved', message: 'This user has already been approved.' })
+
+    found_user.approval_verified = true
+    await found_user.save()
+
+    res.status(200).send({ message: "The approval has been verified.", user: found_user })
+  } catch (error) {
+    console.error(error.message)
+    res.status(500).json({ message: filter_error_message(error.message)})
+  }
+}
+
 
 // EMAIL VERIFICATION
 async function email_request(req, res, next) {
@@ -150,6 +220,7 @@ async function email_request(req, res, next) {
     await found_user.save()
 
     let confirmation_link = process.env.NODE_ENV === 'production' ? `https://signup.utopian.io` : `http://localhost:${process.env.REGISTRATION_FRONTEND_PORT}`
+    console.log(`${confirmation_link}/email/confirm/${token.token}`)
     let transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: process.env.GOOGLE_MAIL_ACCOUNT, pass: process.env.GOOGLE_MAIL_PASSWORD } })
     let mailOptions = { from: process.env.GOOGLE_MAIL_ACCOUNT, to: req.body.email, subject: 'Utopian Email Confirmation', text: 'Hey there,\n\n' + `Please confirm your email for Utopian.io by clicking on this link: ${confirmation_link}/email/confirm/${token.token}` + '.\n' }
     await transporter.sendMail(mailOptions)
@@ -179,6 +250,44 @@ async function email_confirm(req, res, next) {
   }
 }
 
+// Invite code verification
+async function invite_code_confirm(req, res, next) {
+  try {
+    let code:any = await inviteCode.findOne({ code: req.body.code })
+    console.log(code)
+    if(!code || code.used === true) return res.status(400).send({ type: 'invalid-code', message: 'The provided invitation code is invalid.' })
+
+    let found_user:any = await pendingUser.findOne({ _id: req.body.user_id })
+    if(!found_user) return res.status(400).send({ message: 'We were unable to find a user for this token.' })
+    if(found_user.invite_verified) return res.status(400).send({ type: 'already-verified', message: 'This user has already been verified.' })
+
+    code.used = true
+    code.user_id = req.body.user_id
+    await code.save()
+
+    found_user.invite_verified = true
+    await found_user.save()
+
+    res.status(200).send({ message: 'The invitation code is valid.', user: found_user })
+  } catch (error) {
+    console.error(error.message)
+    res.status(500).json({ message: filter_error_message(error.message)})
+  }
+}
+
+async function invite_code_create(req, res, next) {
+  try {
+    if(req.body.admin_password !== process.env.ADMIN_PASSWORD) return res.status(400).send({ type: 'invalid-password', message: 'This action requires admin privileges.' })
+    let code:any = await inviteCode.create({ code: req.body.code })
+    console.log(code)
+
+    res.status(200).send({ message: 'The invitation code was created.' })
+  } catch (error) {
+    console.error(error.message)
+    res.status(500).json({ message: filter_error_message(error.message)})
+  }
+}
+
 // Phone Verification
 async function phone_request(req, res, next) {
   try {
@@ -197,11 +306,11 @@ async function phone_request(req, res, next) {
     if(found_user.sms_verif_tries > 3) return res.status(500).send({message: 'Your requests for sms-verification went over the limit - please contact us on discord!'})
 
     let random_code = crypto.randomBytes(2).toString('hex')
+    console.log('randocode', random_code)
 
     let response = await send_sms(phone_number, random_code)
     let valid_number = process.env.REG_TESTNET === 'true' ? process.env.REG_TESTNET === 'true' : response.body.status !== '0'
 
-    console.log('sms res', response)
 
     if(valid_number) {
       const encryptedPhone = CryptoJS.AES.encrypt(phone_number, process.env.DECRYPT_KEY);
@@ -443,4 +552,19 @@ export async function create_new_user(pending_user) {
 function generate_rnd_string(length){ return crypto.randomBytes(Math.ceil(length/2)).toString('hex').slice(0,length) }
 export async function get_account(name: string) { let acc = await client.database.getAccounts([name]); return acc[0] }
 
-export default { authenticate, email_confirm, email_request, phone_request, phone_confirm, phone_reset, phone_resend, account_create, account_accept }
+export default {
+  authenticate,
+  invite_code_create,
+  invite_code_confirm,
+  email_confirm,
+  email_request,
+  phone_request,
+  phone_confirm,
+  phone_reset,
+  phone_resend,
+  account_create,
+  account_accept,
+  approval_request,
+  approval_accept,
+  approval_confirm,
+}
