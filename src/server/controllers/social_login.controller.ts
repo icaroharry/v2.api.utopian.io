@@ -153,7 +153,7 @@ async function email_request(req, res, next) {
     let transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: process.env.GOOGLE_MAIL_ACCOUNT, pass: process.env.GOOGLE_MAIL_PASSWORD } })
     let mailOptions = { from: process.env.GOOGLE_MAIL_ACCOUNT, to: req.body.email, subject: 'Utopian Email Confirmation', text: 'Hey there,\n\n' + `Please confirm your email for Utopian.io by clicking on this link: ${confirmation_link}/email/confirm/${token.token}` + '.\n' }
     await transporter.sendMail(mailOptions)
-    res.status(200).send('A verification email has been sent to ' + found_user.email + '.')
+    res.status(200).send('A verification email has been sent to your inbox')
   } catch (error) {
     console.error(error.message)
     res.status(500).json({ message: filter_error_message(error.message)})
