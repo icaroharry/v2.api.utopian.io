@@ -13,7 +13,11 @@ const pendingUserSchema = new mongoose.Schema({
   steem_account: { type: String, default: '' },
   sms_verified: { type: Boolean, default: false },
   sms_verif_tries: { type: Number, default: 0 },
+  invite_verified: { type: Boolean, default: false },
   email_verified: { type: Boolean, default: false },
+  pending_approval: { type: Boolean, default: false },
+  approved: { type: Boolean, default: false },
+  approval_verified: { type: Boolean, default: false },
   salt: { type: String },
   privacy: [{
     date: Date,

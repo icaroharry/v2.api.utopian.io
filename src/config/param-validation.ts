@@ -100,7 +100,23 @@ export default {
             email: Joi.string().required()
         }
     },
+    approvalRequest: {
+        body: {
+            user_id: Joi.string().required(),
+        }
+    },
+    approvalAccept: {
+        body: {
+            user_id: Joi.string().required(),
+            admin_password: Joi.string().required(),
+        }
+    },
     emailConfirm: {
+        body: {
+            token: Joi.string().required()
+        }
+    },
+    approvalConfirm: {
         body: {
             token: Joi.string().required()
         }
@@ -110,6 +126,18 @@ export default {
             user_id: Joi.string().required(),
             country_code: Joi.string().required(),
             phone_number: Joi.string().required()
+        }
+    },
+    inviteCodeConfirm: {
+        body: {
+            user_id: Joi.string().required(),
+            code: Joi.string().required()
+        }
+    },
+    inviteCodeCreate: {
+        body: {
+            admin_password: Joi.string().required(),
+            code: Joi.string().required()
         }
     },
     phoneConfirm: {

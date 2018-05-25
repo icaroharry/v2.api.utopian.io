@@ -11,6 +11,12 @@ const supported_providers = ['github', 'facebook', 'linkedin']
 router.route('/:provider')
   .post(validate(paramValidation.socialLogin), socialLoginCtrl.authenticate)
 
+router.route('/invite/confirm')
+  .post(validate(paramValidation.inviteCodeConfirm),socialLoginCtrl.invite_code_confirm)
+
+router.route('/invite/create')
+  .post(validate(paramValidation.inviteCodeCreate),socialLoginCtrl.invite_code_create)
+
 router.route('/email/request')
   .post(validate(paramValidation.emailRequest),socialLoginCtrl.email_request)
 
@@ -28,6 +34,15 @@ router.route('/phone/reset')
 
 router.route('/phone/resend')
   .post(validate(paramValidation.phoneRequest), socialLoginCtrl.phone_resend)
+
+router.route('/approval/request')
+  .post(validate(paramValidation.approvalRequest), socialLoginCtrl.approval_request)
+
+router.route('/approval/accept')
+  .post(validate(paramValidation.approvalAccept), socialLoginCtrl.approval_accept)
+
+router.route('/approval/confirm')
+  .post(validate(paramValidation.approvalConfirm), socialLoginCtrl.approval_confirm)
 
 router.route('/account/create')
   .post(validate(paramValidation.accountCreate), socialLoginCtrl.account_create)

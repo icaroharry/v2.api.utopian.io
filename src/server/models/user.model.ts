@@ -29,6 +29,7 @@ const UserSchema = new mongoose.Schema({
   },
   email_verified: Boolean,
   sms_verified: Boolean,
+  invite_verified: Boolean,
   email: String,
   social_data: [{
     provider: String,
