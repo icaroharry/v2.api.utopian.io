@@ -117,7 +117,7 @@ function is_user_verified(provider, data) {
 
     if(data.plan !== 'free') sum += 2 // this needs to be more detailed about the available plans - business, developer etc.
     sum += joined_github_months * 0.83
-    if(data.two_factor_authentication) sum += 5
+    if(data.two_factor_authentication) sum += 2
     sum += Math.max(((data.public_repos + data.total_private_repos) * 0.05), 1.0)
     sum += data.followers * 0.02
 
