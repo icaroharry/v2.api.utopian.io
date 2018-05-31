@@ -90,6 +90,9 @@ async function create_user_from_existing_account(req, res, next) {
       });
 
       const steem_user = await sc2.me();
+      if(steem_user.user !== steem_account) {
+        return res.status(500).json({ message: `The token provided doesn't match the Steem account!`})
+      }
 
       let { social_provider, social_name, social_id, social_verified, social_email } = found_user;
   
@@ -107,6 +110,7 @@ async function create_user_from_existing_account(req, res, next) {
       if(user) { res.status(200).send({ message: "Account has been created.", user}) }
       else { res.status(500).json({ message: `We couldn't create your account. Please contact us on discord!`}) }
     } catch (error) {
+      console.error(error.message)
       res.status(500).json({ message: filter_error_message(error.message)})
     }
 }
