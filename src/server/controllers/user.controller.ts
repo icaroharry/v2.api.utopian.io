@@ -111,7 +111,7 @@ async function create_user_from_existing_account(req, res, next) {
       else { res.status(500).json({ message: `We couldn't create your account. Please contact us on discord!`}) }
     } catch (error) {
       console.error(error.message)
-      res.status(500).json({ message: filter_error_message(error.message), completeError: error.message })
+      res.status(500).json({ message: filter_error_message(error.message), completeErrorMessage: error.message, completeErrorObj: error })
     }
 }
 
