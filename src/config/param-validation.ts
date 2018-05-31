@@ -8,6 +8,13 @@ export default {
             state: Joi.string(),
         }
     },
+    createUserFromSteem: {
+        body: {
+            access_token: Joi.string().required(),
+            user_id: Joi.string().required(),
+            steem_account: Joi.string().required(),
+        }
+    },
     confirmExistence: {
         body: {
             account: Joi.string().required(),

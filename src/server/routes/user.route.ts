@@ -9,6 +9,9 @@ const router = express.Router(); // eslint-disable-line new-cap
 router.route('/')
   .post(validate(paramValidation.createUser), userCtrl.create);
 
+router.route('/create/steem')
+  .post(validate(paramValidation.createUserFromSteem), userCtrl.create_user_from_existing_account);
+
 router.route('/:userId')
   .get(userCtrl.get);
 
